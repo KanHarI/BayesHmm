@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# Python 3.6
 """
 Spyder Editor
 
@@ -29,19 +30,17 @@ class Model(object):
         a /= (a.sum(axis=1)[:,None])
 
     def advanceStates(self):
-        print m.dSPbydSTS
-        print "AAA"
+        print(m.dSPbydSTS)
+        print("AAA")
         m.dSPbydSTS = np.einsum("ij, ikl -> jkl", m.STS, m.dSPbydSTS)
-        print m.dSPbydSTS
-        print "AAB"
-        print m.dSPbydSTS
-        print "BBB"
+        print(m.dSPbydSTS)
+        print("AAB")
+        print(m.dSPbydSTS)
+        print("BBB")
         # add direct derivative
         i,j,k = np.indices(m.dSPbydSTS.shape)
         m.dSPbydSTS[i==k] += np.outer(np.ones((3,)), m.SP).reshape((9,))
-        print "CCC"
-        for i in xrange(self.SP.size):
-            pass
+        print("CCC")
         self.SP = self.SP.dot(self.STS) # State transtions
     
     def genOutputs(self):
@@ -49,8 +48,8 @@ class Model(object):
 
 
 m = Model(NUMBER_OF_STATES, NUMBER_OF_OUTPUTS)
-print m.STS
-print m.SP
+print(m.STS)
+print(m.SP)
 #print m.STO
 m.advanceStates()
 #print "\nStates update\n"
@@ -58,8 +57,8 @@ m.advanceStates()
 m.advanceStates()
 #print m.genOutputs()
 #m.advanceStates()
-print "\nStates update\n"
-print m.SP
+print("\nStates update\n")
+print(m.SP)
 #print m.genOutputs()
-print "==="
-print m.dSPbydSTS
+print("===")
+print(m.dSPbydSTS)
