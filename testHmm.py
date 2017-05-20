@@ -12,6 +12,7 @@ NUMBER_OF_STATES = 4
 NUMBER_OF_OUTPUTS = 2
 
 class Model(object):
+    """An HMM model + bayesian interference for sequence prediction"""
     
     def __init__(self, numberOfStates, numberOfOutputs):
         self.numberOfStates = numberOfStates
@@ -49,11 +50,14 @@ class Model(object):
         """Sends the real inputs into the system to allow updating of the predicting data and gradient calculation"""
         fitnesses = self.STO.dot(realOuts)
         tmpSum = sum(self.SP*fitnesses)
+        dSPdFitness = (fitnesses + tmpSum)/(tmpSum**2)
         fitnesses /= tmpSum # fitnesses as applied to State Probabilities
         self.SP *= fitnesses
         self.dSPbydSTS = np.einsum("ijk, i -> ijk", self.dSPbydSTS, fitnesses)
-        # self.dSPbydSTO = # TODO:
-        print(m.dSPbydSTS)
+        print(dSPdFitness)
+        i,j,k = np.indices(self.dSPbydSTO.shape)
+        self.dSPbydSTO[i==j] += np.einsum("ij, i->ij", self.STO, dSPdFitness)
+        #print(np.einsum("i, j, ", dSPdFitness))
         # TODO: calculate fitness gradient
         
     
