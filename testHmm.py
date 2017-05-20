@@ -30,6 +30,9 @@ class Model(object):
         self.dSPbydSTS = np.zeros((self.numberOfStates, self.numberOfStates, self.numberOfStates))
         self.dSPbydSTO = np.zeros((self.numberOfStates, self.numberOfStates, self.numberOfOutputs))
         
+        self.dErrbydSTS = np.zeros((self.numberOfStates, self.numberOfStates))
+        self.dErrbydSTO = np.zeros((self.numberOfStates, self.numberOfOutputs))
+        
         self.outputs = None
 
     def renormalize(self, a):
@@ -49,19 +52,17 @@ class Model(object):
     def sendRealOutputs(self, realOuts):
         """Sends the real inputs into the system to allow updating of the predicting data and gradient calculation"""
         fitnesses = self.STO.dot(realOuts)
-        tmpSum = sum(self.SP*fitnesses)
-        dSPdFitness = (fitnesses + tmpSum)/(tmpSum**2)
-        fitnesses /= tmpSum # fitnesses as applied to State Probabilities
-        self.SP *= fitnesses
-        self.dSPbydSTS = np.einsum("ijk, i -> ijk", self.dSPbydSTS, fitnesses)
-        print(dSPdFitness)
+        sfits = fitnesses*self.SP
+        appliedSfits = sfits/sum(sfits)
+        self.dSPbydSTO = np.einsum("ijk, i -> ijk", self.dSPbydSTO, appliedSfits)
+        self.dSPbydSTS = np.einsum("ijk, i -> ijk", self.dSPbydSTS, appliedSfits)
         i,j,k = np.indices(self.dSPbydSTO.shape)
-        self.dSPbydSTO[i==j] += np.einsum("ij, i->ij", self.STO, dSPdFitness)
-        #print(np.einsum("i, j, ", dSPdFitness))
-        # TODO: calculate fitness gradient
+        #self.dSPbydSTO[i==j] += 
+        
         
     
     def genOutputs(self):
+        """Generate next outputs"""
         if self.outputs == None:
             self.outputs = self.SP.dot(self.STO)
         return self.outputs
