@@ -8,7 +8,7 @@ This is a temporary script file.
 
 import numpy as np
 
-NUMBER_OF_STATES = 4
+NUMBER_OF_STATES = 20
 NUMBER_OF_OUTPUTS = 2
 
 class Model(object):
@@ -43,34 +43,80 @@ class Model(object):
         """Move states one step forward and keeps track of gradients"""
         # indirect component
         self.dSPbydSTS = np.einsum("ij, ikl -> jkl", self.STS, self.dSPbydSTS)
+        self.dSPbydSTO = np.einsum("ij, ikl -> jkl", self.STS, self.dSPbydSTO)
         # add direct derivative
         # TODO: find more efficient way to write following line?
         i,j,k = np.indices(self.dSPbydSTS.shape)
         self.dSPbydSTS[i==k] += np.outer(np.ones((self.numberOfStates,)), self.SP).reshape((self.numberOfStates*self.numberOfStates,))
         self.SP = self.SP.dot(self.STS) # State transtions
+        self.outputs = None
     
     def sendRealOutputs(self, realOuts):
         """Sends the real inputs into the system to allow updating of the predicting data and gradient calculation"""
+        if self.outputs == None:
+            self.genOutputs()
+        
+        dErrbydO = 2*(realOuts - self.outputs)
+        self.dErrbydSTO += np.einsum("i, j -> ij", self.SP, dErrbydO)
+        dErrbydS = np.einsum("ij, j -> i", self.STO, dErrbydO)
+        self.dErrbydSTO += np.einsum("i, ijk -> jk", dErrbydS, self.dSPbydSTO)
+        self.dErrbydSTS += np.einsum("i, ijk -> jk", dErrbydS, self.dSPbydSTS)
+        
         fitnesses = self.STO.dot(realOuts)
         sfits = fitnesses*self.SP
+        ssfits = sum(sfits)
         appliedSfits = sfits/sum(sfits)
         self.dSPbydSTO = np.einsum("ijk, i -> ijk", self.dSPbydSTO, appliedSfits)
         self.dSPbydSTS = np.einsum("ijk, i -> ijk", self.dSPbydSTS, appliedSfits)
         i,j,k = np.indices(self.dSPbydSTO.shape)
-        #self.dSPbydSTO[i==j] += 
-        
-        
+        # TODO: find more efficient way to write this
+        for i in range(self.numberOfStates):
+            for j in range(self.numberOfStates):
+                for k in range(self.numberOfOutputs):
+                    if i == j:
+                        self.dSPbydSTO[i,j,k] += (ssfits-sfits[i])*realOuts[k]/(ssfits**2)
+                    else:
+                        self.dSPbydSTO[i,j,k] -= sfits[i]*realOuts[k]/(ssfits**2)
+        self.SP = appliedSfits
     
     def genOutputs(self):
         """Generate next outputs"""
         if self.outputs == None:
             self.outputs = self.SP.dot(self.STO)
         return self.outputs
+    
+    def applyGradient(self, learningRate):
+        self.STO += self.dErrbydSTO*learningRate
+        self.STS += self.dErrbydSTS*learningRate
+    
+    def reset(self):
+        self.SP *= 0
+        self.SP[0] = 1
+        self.dErrbydSTO *= 0
+        self.dErrbydSTS *= 0
+        self.dSPbydSTO *= 0
+        self.dSPbydSTS *= 0
 
 
 m = Model(NUMBER_OF_STATES, NUMBER_OF_OUTPUTS)
 print(m.STS)
 print(m.SP)
 print(m.STO)
-m.advanceStates()
-m.sendRealOutputs(np.array([1,0]))
+
+learningFactor = 0.01
+
+for i in range(1000):
+    for j in range(10):
+        m.advanceStates()
+        m.genOutputs()
+        m.sendRealOutputs(np.array([1,0]))
+        m.advanceStates()
+        m.genOutputs()
+        m.sendRealOutputs(np.array([0,1]))
+    m.applyGradient(learningFactor)
+    m.reset()
+    print(m.genOutputs())
+    m.advanceStates()
+    print(m.genOutputs())
+    m.reset()
+print(m.genOutputs())
