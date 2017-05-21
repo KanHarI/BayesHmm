@@ -43,7 +43,7 @@ class Model(object):
     
     def sendRealOutputs(self, realOuts):
         """Sends the real inputs into the system to allow updating of the predicting data and gradient calculation"""
-        if self.outputs == None:
+        if self.outputs is None:
             self.genOutputs()
         
         dErrbydO = 2*(realOuts - self.outputs)
@@ -55,9 +55,9 @@ class Model(object):
         fitnesses = self.STO.dot(realOuts)
         sfits = fitnesses*self.SP
         ssfits = sum(sfits)
-        appliedSfits = sfits/sum(sfits)
-        self.dSPbydSTO = np.einsum("ijk, i -> ijk", self.dSPbydSTO, appliedSfits)
-        self.dSPbydSTS = np.einsum("ijk, i -> ijk", self.dSPbydSTS, appliedSfits)
+        self.SP = sfits/sum(sfits)
+        self.dSPbydSTO = np.einsum("ijk, i -> ijk", self.dSPbydSTO, self.SP)
+        self.dSPbydSTS = np.einsum("ijk, i -> ijk", self.dSPbydSTS, self.SP)
         i,j,k = np.indices(self.dSPbydSTO.shape)
         # TODO: find more efficient way to write this
         for i in range(self.numberOfStates):
@@ -67,21 +67,25 @@ class Model(object):
                         self.dSPbydSTO[i,j,k] += (ssfits-sfits[i])*realOuts[k]/(ssfits**2)
                     else:
                         self.dSPbydSTO[i,j,k] -= sfits[i]*realOuts[k]/(ssfits**2)
-        self.SP = appliedSfits
     
     def genOutputs(self):
         """Generate next outputs"""
-        if self.outputs == None:
+        if self.outputs is None:
             self.outputs = self.SP.dot(self.STO)
         return self.outputs
     
     def applyGradient(self, learningRate):
+        """Applies gradient multiplied by learning rate and changes transition probabilities"""
         self.STO += self.dErrbydSTO*learningRate
         self.STS += self.dErrbydSTS*learningRate
+        removeOverOneOrUnderZero = np.vectorize(lambda x: 0 if x < 0 else (1 if x > 1 else x))
+        self.STO[self.STO > 1] = 1
+        self.STO[self.STO < 0] = 0
         self.renormalize(self.STO)
         self.renormalize(self.STS)
     
     def reset(self):
+        """resets flowing data"""
         self.SP *= 0
         self.SP[0] = 1
         self.dErrbydSTO *= 0
