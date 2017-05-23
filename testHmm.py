@@ -13,8 +13,6 @@ from Model import Model
 NUMBER_OF_STATES = 2
 NUMBER_OF_OUTPUTS = 2
 
-
-
 m = Model(NUMBER_OF_STATES, NUMBER_OF_OUTPUTS)
 print(m.STS)
 print(m.SP)
