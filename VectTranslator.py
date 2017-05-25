@@ -11,9 +11,10 @@ class VectTranslator(object):
     def __init__(self, exponent=3):
         self.exponent = exponent
     
-    def translateToVector(self, inTuples):
+    def translateToVector(self, inTuples : list):
         vector = []
         for tpl in inTuples:
+            print(tpl)
             sm = tpl[0]+tpl[1]
             v0 = (tpl[0]/sm)**self.exponent
             v1 = (tpl[1]/sm)**self.exponent
