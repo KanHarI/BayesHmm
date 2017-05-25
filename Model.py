@@ -79,7 +79,6 @@ class Model(object):
         """Applies gradient multiplied by learning rate and changes transition probabilities"""
         self.STO += self.dErrbydSTO*learningRate
         self.STS += self.dErrbydSTS*learningRate
-        removeOverOneOrUnderZero = np.vectorize(lambda x: 0 if x < 0 else (1 if x > 1 else x))
         self.STO[self.STO > 1] = 1
         self.STO[self.STO < 0] = 0
         self.renormalize(self.STO)
