@@ -5,11 +5,11 @@ import numpy as np
 class Model(object):
     """An HMM model + bayesian interference for sequence prediction"""
     
-    def __init__(self, numberOfStates, numberOfOutputs):
-        self.numberOfStates = numberOfStates
-        self.numberOfOutputs = numberOfOutputs
-        self.STS = np.random.random((numberOfStates, numberOfStates)) + 0.5 # state to state transitions
-        self.STO = np.random.random((numberOfStates, numberOfOutputs)) + 0.5 # state to output transitions
+    def __init__(self, number_of_states : int, number_of_outputs : int):
+        self.numberOfStates = number_of_states
+        self.numberOfOutputs = number_of_outputs
+        self.STS = np.random.random((number_of_states, number_of_states)) + 0.5 # state to state transitions
+        self.STO = np.random.random((number_of_states, number_of_outputs)) + 0.5 # state to output transitions
         # +0.5 followed by normalization caps outputs to range [0.25, 0.75]
         
         self.renormalize(self.STS)
@@ -26,7 +26,7 @@ class Model(object):
         
         self.outputs = None
 
-    def renormalize(self, a):
+    def renormalize(self, a : np.array):
         """Divides rows by sum (each row's sum = 1 after renormalization)"""
         a /= (a.sum(axis=1)[:,None])
 
@@ -42,18 +42,18 @@ class Model(object):
         self.SP = self.SP.dot(self.STS) # State transtions
         self.outputs = None
     
-    def sendRealOutputs(self, realOuts):
+    def sendRealOutputs(self, real_outs : np.array):
         """Sends the real inputs into the system to allow updating of the predicting data and gradient calculation"""
         if self.outputs is None:
             self.genOutputs()
         
-        dErrbydO = 2*(realOuts - self.outputs)
+        dErrbydO = 2*(real_outs - self.outputs)
         self.dErrbydSTO += np.einsum("i, j -> ij", self.SP, dErrbydO)
         dErrbydS = np.einsum("ij, j -> i", self.STO, dErrbydO)
         self.dErrbydSTO += np.einsum("i, ijk -> jk", dErrbydS, self.dSPbydSTO)
         self.dErrbydSTS += np.einsum("i, ijk -> jk", dErrbydS, self.dSPbydSTS)
         
-        fitnesses = self.STO.dot(realOuts)
+        fitnesses = self.STO.dot(real_outs)
         sfits = fitnesses*self.SP
         ssfits = sum(sfits)
         self.SP = sfits/sum(sfits)
@@ -65,9 +65,9 @@ class Model(object):
             for j in range(self.numberOfStates):
                 for k in range(self.numberOfOutputs):
                     if i == j:
-                        self.dSPbydSTO[i,j,k] += (ssfits-sfits[i])*realOuts[k]/(ssfits**2)
+                        self.dSPbydSTO[i,j,k] += (ssfits-sfits[i]) * real_outs[k] / (ssfits ** 2)
                     else:
-                        self.dSPbydSTO[i,j,k] -= sfits[i]*realOuts[k]/(ssfits**2)
+                        self.dSPbydSTO[i,j,k] -= sfits[i] * real_outs[k] / (ssfits ** 2)
     
     def genOutputs(self):
         """Generate next outputs"""
@@ -75,10 +75,10 @@ class Model(object):
             self.outputs = self.SP.dot(self.STO)
         return self.outputs
     
-    def applyGradient(self, learningRate):
+    def applyGradient(self, learning_rate : float):
         """Applies gradient multiplied by learning rate and changes transition probabilities"""
-        self.STO += self.dErrbydSTO*learningRate
-        self.STS += self.dErrbydSTS*learningRate
+        self.STO += self.dErrbydSTO * learning_rate
+        self.STS += self.dErrbydSTS * learning_rate
         self.STO[self.STO > 1] = 1
         self.STO[self.STO < 0] = 0
         self.renormalize(self.STO)

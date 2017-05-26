@@ -26,18 +26,12 @@ class Predictor(object):
             )
 
     def getSamples(self):
-        print('a')
-        listOfListsOfOpenClose = itertools.chain.from_iterable(map(
-            lambda listOfSamples: map(
-                lambda sample: (sample.open, sample.close),
-                listOfSamples
-            ),
-            self._itemLists
-        ))
+        samples_tpls = zip(*self._itemLists)
+        for sample_tpl in samples_tpls:
+            sample_tpl = map(lambda sample: (sample.open, sample.close), sample_tpl)
+            sample_tpl = self._outToVect.translateToVector(sample_tpl)
+            yield  sample_tpl
 
-        mergedListOpenCloseList = zip(listOfListsOfOpenClose)
-        for _lst in mergedListOpenCloseList:
-            yield self._outToVect.translateToVector(_lst)
 
     def train(self, iterations : int, trace : bool = False, initial_learning_rate : float = 1e-30):
         realOutsOrig = list(self.getSamples())
@@ -54,7 +48,7 @@ class Predictor(object):
             if error > lastErr: # We do not care about halfing the learning rate in the first iteration
                 learningRate *= 0.5
             else:
-               learningRate *= 1.1
+               learningRate *= 1.2
             lastErr = error
             if trace:
                 print("error is: " + str(error) + "\tlearning rate: " + str(learningRate))
