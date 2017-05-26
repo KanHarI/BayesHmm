@@ -32,28 +32,3 @@ print("STS")
 print(m.STS)
 print("STO")
 print(m.STO)
-
-# learningFactor = 1e-5
-# error = 0
-# lastErr = 0
-#
-# v = VectTranslator()
-#
-# for j in range(1000):
-#     error = 0
-#     appl = CsvParser(FILE_PATH)
-#     for sample in appl.items():
-#         m.advanceStates()
-#         outs = m.genOutputs()
-#         realOuts = v.translateToVector([(sample.open, sample.close)])
-#         m.sendRealOutputs(realOuts)
-#         deltas = realOuts - outs
-#         error += np.vectorize(lambda x: x*x)(deltas).sum()
-#     if error > lastErr:
-#         learningFactor *= 0.5
-#     else:
-#         learningFactor *= 1.1
-#     lastErr = error
-#     print("error is: " + str(error) + " learning rate: " + str(learningFactor))
-#     m.applyGradient(learningFactor)
-#     m.reset()
