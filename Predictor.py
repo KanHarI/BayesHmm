@@ -51,6 +51,6 @@ class Predictor(object):
                learningRate *= 1.2
             lastErr = error
             if trace:
-                print("error is: " + str(error) + "\tlearning rate: " + str(learningRate))
+                print("error is: " + str(error) + "\tlearn: " + str(learningRate) + "\tSTO grad: " + str(np.sqrt(np.mean(np.square(self._model.dErrbydSTO)))) + "\tSTS grad: " + str(np.sqrt(np.mean(np.square(self._model.dErrbydSTS)))))
             self._model.applyGradient(learningRate)
             self._model.reset()
